@@ -17,7 +17,7 @@
 ## along with this library.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-BINARY = blinker
+BINARY = usbhid
 
 LDSCRIPT = $(OPENCM3_DIR)/lib/stm32/f1/stm32f103x8.ld
 
