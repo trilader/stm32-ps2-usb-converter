@@ -18,6 +18,7 @@
 ##
 
 BINARY = usbhid
+OBJS = usb.o serial.o
 
 LDSCRIPT = $(OPENCM3_DIR)/lib/stm32/f1/stm32f103x8.ld
 
