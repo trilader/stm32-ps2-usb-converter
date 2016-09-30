@@ -42,9 +42,7 @@ int main(void)
 
     setup_serial();
 
-	rcc_periph_clock_enable(RCC_GPIOA);
     rcc_periph_clock_enable(RCC_GPIOC);
-	rcc_periph_clock_enable(RCC_AFIO);
 
 	AFIO_MAPR |= AFIO_MAPR_SWJ_CFG_JTAG_OFF_SW_ON;
     gpio_set_mode(GPIOA, GPIO_MODE_INPUT, 0, GPIO15);
@@ -91,6 +89,7 @@ int main(void)
     systick_interrupt_enable();
     systick_counter_enable();
 
+    printf("\n\n\n");
     printf("Built on %s %s\n", __DATE__, __TIME__);
     printf("Hello World!\n");
 
@@ -179,7 +178,6 @@ void exti3_isr(void)
 
 void sys_tick_handler(void)
 {
-    static bool state=false;
     static int ticks=0;
     systicks++;
 
@@ -192,50 +190,58 @@ void sys_tick_handler(void)
 
     if(keys_need_update)
     {
-        uint8_t buf[8]={0, // modifiers
-                        0, // reserverd
-                        0, // leds,
-                        f1*4, // a
-                        f2*5, // b
-                        f3*6, // c
-                        f4*7, // d
-                        0,};
-        usbd_ep_write_packet(usbd_dev, 0x81, buf, 8);
+        uint8_t buf[8]={
+            0, // modifiers
+            0, // reserverd
+            0, // leds,
+            (uint8_t)(f1*4), // a
+            0, //(uint8_t)(f2*5), // b
+            0, //(uint8_t)(f3*6), // c
+            0, //(uint8_t)(f4*7), // d
+            0,
+        };
+        //usbd_ep_write_packet(usbd_dev, 0x81, buf, 8);
+
+        volatile uint8_t ff1 = 0b00000010; // Prev
+        volatile uint8_t ff2 = 0b00000001; // Next
+        volatile uint8_t ff3 = 0b00001000; // PlayPause
+        volatile uint8_t ff4 = 0b00000100; // Stop
+
+        uint8_t buf2[1]={
+            0,
+        };
+
+        if(f1)
+            buf2[0]|=ff1;
+        if(f2)
+            buf2[0]|=ff2;
+        if(f3)
+            buf2[0]|=ff3;
+        if(f4)
+            buf2[0]|=ff4;
+
+        printf("Keys: %x\n", buf2[0]);
+        unsigned int tries=0;
+        int rc=0;
+        while(!((rc=usbd_ep_write_packet(usbd_dev, 0x82, buf2, 1))==1) && tries<10)
+        {
+            tries++;
+            for(unsigned int i=0; i<100; i++)
+            {
+                // Wait a bit
+                __asm__("nop");
+            }
+        }
+
+        if(tries<10)
+        {
+            printf("Done. Wrote %d bytes. Took %d retries\n", rc, tries);
+        }
+        else
+        {
+            printf("Failed. rc=%d\n", rc);
+        }
 
         keys_need_update=false;
     }
-
-    /*
-    if(ticks>1000)
-    {
-        gpio_toggle(GPIOC, GPIO13);
-        //state=!state;
-        //if(state)
-        {
-            uint8_t buf[8]={0, // modifiers
-                            0, // reserverd
-                            0, // leds,
-                            4, // a
-                            0,
-                            0,
-                            0,
-                            0,};
-            usbd_ep_write_packet(usbd_dev, 0x81, buf, 8);
-        }
-        //else
-        {
-            uint8_t buf2[8]={0, // modifiers
-                            0, // reserverd
-                            0, // leds,
-                            0, // nothing
-                            0,
-                            0,
-                            0,
-                            0,};
-            while(!usbd_ep_write_packet(usbd_dev, 0x81, buf2, 8))
-                ;
-        }
-        //ticks=0;
-    }
-    */
 }
