@@ -3,3 +3,5 @@
 *.elf
 *.map
 *.d
+*.user
+*.lst
