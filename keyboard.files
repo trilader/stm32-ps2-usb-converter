@@ -7,3 +7,4 @@ usb.h
 Makefile
 serial.c
 serial.h
+util.h

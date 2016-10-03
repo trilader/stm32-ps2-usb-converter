@@ -27,6 +27,7 @@
 
 #include "stdio.h"
 
+#include "util.h"
 #include "usb.h"
 #include "serial.h"
 
@@ -101,6 +102,8 @@ bool read_gpio_debounced(int bank, int port)
 {
     constexpr unsigned int _1ms=48000000/3/1000;
     constexpr unsigned int _500us=48000000/3/2000;
+
+    UNUSED(_1ms);
 
     uint16_t try1=gpio_get(bank, port);
     for(unsigned int i=0; i<_500us; i++)
@@ -200,6 +203,7 @@ void sys_tick_handler(void)
             0, //(uint8_t)(f4*7), // d
             0,
         };
+        UNUSED(buf);
         //usbd_ep_write_packet(usbd_dev, 0x81, buf, 8);
 
         volatile uint8_t ff1 = 0b00000010; // Prev
