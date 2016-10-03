@@ -77,14 +77,13 @@ int main(void)
     gpio_clear(GPIOA, GPIO3);
 
     printf("Configuring Interupts\n");
-    exti_enable_request(EXTI0);
-    exti_set_trigger(EXTI0, EXTI_TRIGGER_BOTH);
-    exti_enable_request(EXTI1);
-    exti_set_trigger(EXTI1, EXTI_TRIGGER_BOTH);
-    exti_enable_request(EXTI2);
-    exti_set_trigger(EXTI2, EXTI_TRIGGER_BOTH);
-    exti_enable_request(EXTI3);
-    exti_set_trigger(EXTI3, EXTI_TRIGGER_BOTH);
+
+#define EXTI_GO(n,m) exti_enable_request(n); exti_set_trigger(n,m);
+
+    EXTI_GO(EXTI0, EXTI_TRIGGER_BOTH);
+    EXTI_GO(EXTI1, EXTI_TRIGGER_BOTH);
+    EXTI_GO(EXTI2, EXTI_TRIGGER_BOTH);
+    EXTI_GO(EXTI3, EXTI_TRIGGER_BOTH);
 
     nvic_enable_irq(NVIC_EXTI0_IRQ);
     nvic_enable_irq(NVIC_EXTI1_IRQ);
