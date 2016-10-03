@@ -39,17 +39,24 @@ bool f1=false, f2=false, f3=false, f4=false;
 
 int main(void)
 {
-	rcc_clock_setup_in_hsi_out_48mhz();
+    // Disable JTAG, enable SWD. This frees up GPIO PA15, PB3 and PB4
+    AFIO_MAPR |= AFIO_MAPR_SWJ_CFG_JTAG_OFF_SW_ON;
+
+    rcc_clock_setup_in_hsi_out_48mhz();
 
     setup_serial();
 
+    printf("\n\n\n");
+    printf("Booting...\n");
+    printf("Built on %s %s\n", __DATE__, __TIME__);
+
     rcc_periph_clock_enable(RCC_GPIOC);
 
-	AFIO_MAPR |= AFIO_MAPR_SWJ_CFG_JTAG_OFF_SW_ON;
     gpio_set_mode(GPIOA, GPIO_MODE_INPUT, 0, GPIO15);
     gpio_set(GPIOA, GPIO15);
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO15);
 
+    printf("Configuring USB\n");
     setup_usb();
 
 
@@ -59,7 +66,7 @@ int main(void)
     gpio_set(GPIOC, GPIO13);
 
 
-    // GPIO pins for media keys. Set to input and enable internal pullup
+    // GPIO pins for media keys. Set to input and enable internal pulldown
     gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO0);
     gpio_clear(GPIOA, GPIO0);
     gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO1);
@@ -69,6 +76,7 @@ int main(void)
     gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO3);
     gpio_clear(GPIOA, GPIO3);
 
+    printf("Configuring Interupts\n");
     exti_enable_request(EXTI0);
     exti_set_trigger(EXTI0, EXTI_TRIGGER_BOTH);
     exti_enable_request(EXTI1);
@@ -84,15 +92,13 @@ int main(void)
     nvic_enable_irq(NVIC_EXTI3_IRQ);
 
 
+    printf("Configuring SysTick\n");
     systick_set_clocksource(STK_CSR_CLKSOURCE_AHB_DIV8);
     /* SysTick interrupt every N clock pulses: set reload to N-1 */
-    systick_set_reload(6000-1);
+    systick_set_reload((48000000/8/1000)-1);
     systick_interrupt_enable();
     systick_counter_enable();
 
-    printf("\n\n\n");
-    printf("Built on %s %s\n", __DATE__, __TIME__);
-    printf("Hello World!\n");
 
     while (1)
         usbd_poll(usbd_dev);
