@@ -206,23 +206,28 @@ void sys_tick_handler(void)
         UNUSED(buf);
         //usbd_ep_write_packet(usbd_dev, 0x81, buf, 8);
 
-        volatile uint8_t ff1 = 0b00000010; // Prev
-        volatile uint8_t ff2 = 0b00000001; // Next
-        volatile uint8_t ff3 = 0b00001000; // PlayPause
-        volatile uint8_t ff4 = 0b00000100; // Stop
+        volatile uint8_t keycode_media_next        = 0b00000001;
+        volatile uint8_t keycode_media_prev        = 0b00000010;
+        volatile uint8_t keycode_media_stop        = 0b00000100;
+        volatile uint8_t keycode_media_playpause   = 0b00001000;
+        volatile uint8_t keycode_media_mute        = 0b00010000;
+        volatile uint8_t keycode_media_volume_up   = 0b00100000;
+        volatile uint8_t keycode_media_volume_down = 0b01000000;
 
-        uint8_t buf2[1]={
-            0,
-        };
+        UNUSED(keycode_media_mute);
+        UNUSED(keycode_media_volume_up);
+        UNUSED(keycode_media_volume_down);
+
+        uint8_t buf2[1]={0};
 
         if(f1)
-            buf2[0]|=ff1;
+            buf2[0]|=keycode_media_prev;
         if(f2)
-            buf2[0]|=ff2;
+            buf2[0]|=keycode_media_next;
         if(f3)
-            buf2[0]|=ff3;
+            buf2[0]|=keycode_media_playpause;
         if(f4)
-            buf2[0]|=ff4;
+            buf2[0]|=keycode_media_stop;
 
         printf("Keys: %x\n", buf2[0]);
         unsigned int tries=0;
