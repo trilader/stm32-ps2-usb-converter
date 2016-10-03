@@ -50,15 +50,16 @@ int main(void)
     printf("Booting...\n");
     printf("Built on %s %s\n", __DATE__, __TIME__);
 
+    rcc_periph_clock_enable(RCC_GPIOA);
+    rcc_periph_clock_enable(RCC_GPIOB);
     rcc_periph_clock_enable(RCC_GPIOC);
 
-    gpio_set_mode(GPIOA, GPIO_MODE_INPUT, 0, GPIO15);
+    /*gpio_set_mode(GPIOA, GPIO_MODE_INPUT, 0, GPIO15);
     gpio_set(GPIOA, GPIO15);
-    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO15);
+    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ, PIO_CNF_OUTPUT_PUSHPULL, GPIO15);*/
 
     printf("Configuring USB\n");
     setup_usb();
-
 
     // GPIO C13 is the onboard LED
     gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
