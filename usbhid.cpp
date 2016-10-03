@@ -229,28 +229,9 @@ void sys_tick_handler(void)
         if(f4)
             buf2[0]|=keycode_media_stop;
 
-        printf("Keys: %x\n", buf2[0]);
-        unsigned int tries=0;
-        int rc=0;
-        while(!((rc=usbd_ep_write_packet(usbd_dev, 0x82, buf2, 1))==1) && tries<10)
-        {
-            tries++;
-            for(unsigned int i=0; i<100; i++)
-            {
-                // Wait a bit
-                __asm__("nop");
-            }
-        }
+        usbd_ep_write_packet(usbd_dev, 0x82, buf2, 1);
 
-        if(tries<10)
-        {
-            printf("Done. Wrote %d bytes. Took %d retries\n", rc, tries);
-        }
-        else
-        {
-            printf("Failed. rc=%d\n", rc);
-        }
-
+        //Clear key update required flag
         keys_need_update=false;
     }
 }
