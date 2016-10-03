@@ -106,11 +106,15 @@ bool read_gpio_debounced(int bank, int port)
     UNUSED(_1ms);
 
     uint16_t try1=gpio_get(bank, port);
+
     for(unsigned int i=0; i<_500us; i++)
         __asm__("nop");
+
     uint16_t try2=gpio_get(bank, port);
+
     for(unsigned int i=0; i<_500us; i++)
         __asm__("nop");
+
     uint16_t try3=gpio_get(bank, port);
 
     uint8_t result=(!!try1) + (!!try2) + (!!try3);
