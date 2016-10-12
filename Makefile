@@ -18,7 +18,7 @@
 ##
 
 BINARY = usbhid
-OBJS = usb.o serial.o
+OBJS = usb.o serial.o ps2handler.o
 
 LDSCRIPT = $(OPENCM3_DIR)/lib/stm32/f1/stm32f103x8.ld
 

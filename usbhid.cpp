@@ -30,9 +30,12 @@
 #include "util.h"
 #include "usb.h"
 #include "serial.h"
+#include "ps2handler.h"
 
 extern usbd_device *usbd_dev;
 unsigned long systicks=0;
+ps2handler ps2keyboard;
+
 
 bool keys_need_update=false;
 bool f1=false, f2=false, f3=false, f4=false;
@@ -85,12 +88,21 @@ int main(void)
     EXTI_GO(EXTI1, EXTI_TRIGGER_BOTH);
     EXTI_GO(EXTI2, EXTI_TRIGGER_BOTH);
     EXTI_GO(EXTI3, EXTI_TRIGGER_BOTH);
+    //EXTI_GO(EXTI4, EXTI_TRIGGER_BOTH);
+
+    EXTI_GO(EXTI7, EXTI_TRIGGER_FALLING);
 
     nvic_enable_irq(NVIC_EXTI0_IRQ);
     nvic_enable_irq(NVIC_EXTI1_IRQ);
     nvic_enable_irq(NVIC_EXTI2_IRQ);
     nvic_enable_irq(NVIC_EXTI3_IRQ);
+    //nvic_enable_irq(NVIC_EXTI4_IRQ);
 
+    nvic_enable_irq(NVIC_EXTI9_5_IRQ);
+    //Make sure systick doesn't interrupt PS/2 protocol bitbang action
+    nvic_set_priority(NVIC_SYSTICK_IRQ, 255);
+
+    //nvic_enable_irq(NVIC_EXTI15_10_IRQ);
 
     printf("Configuring SysTick\n");
     systick_set_clocksource(STK_CSR_CLKSOURCE_AHB_DIV8);
@@ -99,8 +111,11 @@ int main(void)
     systick_interrupt_enable();
     systick_counter_enable();
 
+    printf("Enabling PS/2 Port\n");
+    ps2keyboard.init();
 
     while (1)
+        //__asm("wfi");
         usbd_poll(usbd_dev);
 }
 
@@ -189,6 +204,34 @@ void exti3_isr(void)
     }
 }
 
+void exti9_5_isr(void)
+{
+    if(exti_get_flag_status(EXTI7))
+    {
+        bool clock_state=gpio_get(GPIOA, GPIO7);
+        bool data_state=gpio_get(GPIOA, GPIO6);
+
+        ps2keyboard.clock_update(clock_state, data_state);
+        exti_reset_request(EXTI7);
+    }
+}
+
+/*
+void exti15_10_isr(void)
+{
+    printf("%s\n",__PRETTY_FUNCTION__);
+}
+*/
+
+void hard_fault_handler()
+{
+    printf("Hard Fault!");
+    while(1)
+    {
+        ; // Do nothing
+    }
+}
+
 void sys_tick_handler(void)
 {
     static int ticks=0;
@@ -199,6 +242,16 @@ void sys_tick_handler(void)
     {
         gpio_toggle(GPIOC, GPIO13);
         ticks=0;
+    }
+
+    static int last_ps2_fails=0;
+
+    ps2keyboard.decode_scancode();
+
+    if(ps2keyboard.fail_count!=last_ps2_fails)
+    {
+        printf("PS/2 failure count: %03d\n", ps2keyboard.fail_count);
+        last_ps2_fails=ps2keyboard.fail_count;
     }
 
     if(keys_need_update)

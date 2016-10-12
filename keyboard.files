@@ -7,4 +7,6 @@ usb.h
 Makefile
 serial.c
 serial.h
+ps2handler.cpp
+ps2handler.h
 util.h
