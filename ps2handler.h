@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <array>
 #include <libopencm3/stm32/gpio.h>
 
 class ps2handler
@@ -13,6 +14,13 @@ private:
 
     void init_recv_buffer();
     uint8_t get_scan_code();
+    uint16_t map_to_state_index(uint8_t meta, uint8_t scancode) const;
+    uint8_t map_state_to_usb_scancode(uint16_t state_index) const;
+
+    const uint8_t meta_modifier=0x01;
+    const uint8_t meta_pause_break=0x02;
+    const uint8_t meta_break=0x04;
+
 
 public:
     ps2handler();
@@ -24,6 +32,15 @@ public:
     const uint32_t clock_pin_bank = GPIOA;
     const uint16_t clock_pin_id = GPIO7;
 
-    bool fail_count=0;
+    const uint8_t usb_key_state_is_sent = 0x01;
+    const uint8_t usb_key_state_is_down = 0x02;
+
+    std::array<uint8_t,5> usb_keys_state = {};
+    std::array<uint8_t,5> usb_keys = {};
+    std::array<uint8_t,1024> key_states = {};
+    uint8_t usb_modifier_byte() const;
+
+    int fail_count=0;
+    bool need_update=false;
 
 };

@@ -254,21 +254,53 @@ void sys_tick_handler(void)
         last_ps2_fails=ps2keyboard.fail_count;
     }
 
-    if(keys_need_update)
+    if(ps2keyboard.need_update)
     {
+        //ps2keyboard.need_update=false;
         uint8_t buf[8]={
-            0, // modifiers
+            ps2keyboard.usb_modifier_byte(), // modifiers
             0, // reserverd
             0, // leds,
-            (uint8_t)(f1*4), // a
-            0, //(uint8_t)(f2*5), // b
-            0, //(uint8_t)(f3*6), // c
-            0, //(uint8_t)(f4*7), // d
-            0,
+            ps2keyboard.usb_keys[0],
+            ps2keyboard.usb_keys[1],
+            ps2keyboard.usb_keys[2],
+            ps2keyboard.usb_keys[3],
+            ps2keyboard.usb_keys[4],
         };
-        UNUSED(buf);
-        //usbd_ep_write_packet(usbd_dev, 0x81, buf, 8);
 
+//        UNUSED(buf);
+        for(size_t index=0;index<8;++index)
+        {
+            printf("%02x ", buf[index]);
+        }
+        printf("\n");
+        uint16_t sent_bytes=usbd_ep_write_packet(usbd_dev, 0x81, buf, 8);
+
+        if(sent_bytes)
+        {
+            printf("sent %d bytes\n",sent_bytes);
+            ps2keyboard.need_update=false;
+            for(size_t index=0; index<ps2keyboard.usb_keys.size();++index)
+            {
+                if(ps2keyboard.usb_keys[index]==0)
+                    continue;
+
+                if(ps2keyboard.usb_keys_state[index]&ps2keyboard.usb_key_state_is_down)
+                {
+                    ps2keyboard.usb_keys_state[index]|=ps2keyboard.usb_key_state_is_sent;
+                }
+                else
+                {
+                    ps2keyboard.usb_keys[index]=0;
+                    ps2keyboard.usb_keys_state[index]=0;
+                    ps2keyboard.need_update=true;
+                }
+            }
+        }
+    }
+
+    if(keys_need_update)
+    {
         volatile uint8_t keycode_media_next        = 0b00000001;
         volatile uint8_t keycode_media_prev        = 0b00000010;
         volatile uint8_t keycode_media_stop        = 0b00000100;
