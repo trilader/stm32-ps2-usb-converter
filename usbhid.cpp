@@ -268,17 +268,10 @@ void sys_tick_handler(void)
             ps2keyboard.usb_keys[4],
         };
 
-//        UNUSED(buf);
-        for(size_t index=0;index<8;++index)
-        {
-            printf("%02x ", buf[index]);
-        }
-        printf("\n");
         uint16_t sent_bytes=usbd_ep_write_packet(usbd_dev, 0x81, buf, 8);
 
         if(sent_bytes)
         {
-            printf("sent %d bytes\n",sent_bytes);
             ps2keyboard.need_update=false;
             for(size_t index=0; index<ps2keyboard.usb_keys.size();++index)
             {

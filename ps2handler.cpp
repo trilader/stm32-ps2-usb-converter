@@ -108,17 +108,6 @@ uint16_t ps2handler::map_to_state_index(uint8_t meta, uint8_t scancode) const
 uint8_t ps2handler::map_state_to_usb_scancode(uint16_t state_index) const
 {
     return state_index_to_usb_scancode[state_index];
-    //printf("Trying to map %04x\n", state_index);
-    /*if(state_index==0x1c)
-        return 4;
-    else if(state_index==0x1b)
-        return 4+('s'-'a');
-    else if(state_index==0x23)
-        return 4+('d'-'a');
-    else if(state_index==0x2b)
-        return 4+('f'-'a');
-    else
-        return 0;*/
 }
 
 ps2handler::ps2handler()
@@ -228,7 +217,6 @@ void ps2handler::decode_scancode()
     static uint16_t prev_state_index=0;
     while((scancode=get_scan_code())!=0)
     {
-        printf("%02x\n", scancode);
         if(scancode==0xe0)
         {
             meta|=meta_modifier;
@@ -273,10 +261,6 @@ void ps2handler::decode_scancode()
                             if(usb_keys_state[index]&usb_key_state_is_sent)
                             {
                                 usb_keys[index]=0;
-                            }
-                            else
-                            {
-                                printf("S\n");
                             }
                             usb_keys_state[index]=0;
                             break;
