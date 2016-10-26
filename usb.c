@@ -1,5 +1,6 @@
 #include "usb.h"
 
+#include "util.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <libopencm3/stm32/rcc.h>
@@ -301,31 +302,53 @@ static const char *usb_strings[] = {
 /* Buffer to be used for control requests. */
 uint8_t usbd_control_buffer[128];
 
+static int hid_control_request_interface(usbd_device *dev, struct usb_setup_data *req, uint8_t **buf, uint16_t *len,
+            void (**complete)(usbd_device *, struct usb_setup_data *))
+{
+    UNUSED(complete);
+    UNUSED(dev);
+
+    if(req->bmRequestType==(USB_REQ_TYPE_CLASS|USB_REQ_TYPE_INTERFACE) /*0x21*/)
+    {
+        if((req->bRequest == USB_REQ_SET_CONFIGURATION) &&
+           (req->wIndex==0 /* Must be 0 for SET_CONFIGURATION*/))
+        {
+            if(*len>0)
+            {
+                uint8_t data=**buf;
+                // LEDs
+                //gpio_toggle(GPIOC, GPIO13);
+                // CapsLock
+                if(data & 0b10)
+                    gpio_clear(GPIOC, GPIO13);
+                else
+                    gpio_set(GPIOC, GPIO13);
+                return USBD_REQ_HANDLED;
+
+            }
+            return USBD_REQ_NOTSUPP;
+        }
+        else if(req->bRequest==0x0A /*SET_IDLE*/)
+        {
+            return USBD_REQ_HANDLED;
+        }
+    }
+
+    printf("Got USB unsupported request: bmRequestType=%#x\nbRequest=%#x\nwValue=%#x\nwIndex=%#x\nwLenght=%#x\n\n",
+           req->bmRequestType,
+           req->bRequest,
+           req->wValue,
+           req->wIndex,
+           req->wLength);
+
+    return USBD_REQ_NOTSUPP;
+}
+
 static int hid_control_request(usbd_device *dev, struct usb_setup_data *req, uint8_t **buf, uint16_t *len,
             void (**complete)(usbd_device *, struct usb_setup_data *))
 {
     (void)complete;
     (void)dev;
-
-    if((req->bmRequestType==(USB_REQ_TYPE_CLASS|USB_REQ_TYPE_INTERFACE) /*0x21*/) &&
-       (req->bRequest == USB_REQ_SET_CONFIGURATION) &&
-       (req->wIndex==0 /* Must be 0 for SET_CONFIGURATION*/))
-    {
-        if(*len>0)
-        {
-            uint8_t data=**buf;
-            // LEDs
-            //gpio_toggle(GPIOC, GPIO13);
-            // CapsLock
-            if(data & 0b10)
-                gpio_clear(GPIOC, GPIO13);
-            else
-                gpio_set(GPIOC, GPIO13);
-            return USBD_REQ_HANDLED;
-
-        }
-        return USBD_REQ_NOTSUPP;
-    }
 
     if((req->bmRequestType == (USB_REQ_TYPE_IN|USB_REQ_TYPE_STANDARD|USB_REQ_TYPE_INTERFACE) /*0x81*/) &&
        (req->bRequest == USB_REQ_GET_DESCRIPTOR /*0x06*/) &&
@@ -400,9 +423,15 @@ static void hid_set_config(usbd_device *dev, uint16_t wValue)
 
     usbd_register_control_callback(
         dev,
-        USB_REQ_TYPE_STANDARD | USB_REQ_TYPE_INTERFACE, // handle standard and interface requests
+        USB_REQ_TYPE_STANDARD | USB_REQ_TYPE_INTERFACE,
         USB_REQ_TYPE_TYPE | USB_REQ_TYPE_RECIPIENT,
         hid_control_request);
+
+    usbd_register_control_callback(
+        dev,
+        USB_REQ_TYPE_CLASS|USB_REQ_TYPE_INTERFACE,
+        USB_REQ_TYPE_DIRECTION|USB_REQ_TYPE_TYPE|USB_REQ_TYPE_RECIPIENT,
+        hid_control_request_interface);
 
 #ifdef INCLUDE_DFU_INTERFACE
     usbd_register_control_callback(
