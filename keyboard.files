@@ -10,3 +10,4 @@ serial.h
 ps2handler.cpp
 ps2handler.h
 util.h
+LICENSE
