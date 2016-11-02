@@ -40,6 +40,11 @@ ps2handler ps2keyboard;
 bool keys_need_update=false;
 bool f1=false, f2=false, f3=false, f4=false;
 
+void update_leds(bool num, bool caps, bool scroll)
+{
+    ps2keyboard.update_leds(num,caps,scroll);
+}
+
 int main(void)
 {
     // Disable JTAG, enable SWD. This frees up GPIO PA15, PB3 and PB4
@@ -90,7 +95,7 @@ int main(void)
     EXTI_GO(EXTI3, EXTI_TRIGGER_BOTH);
     //EXTI_GO(EXTI4, EXTI_TRIGGER_BOTH);
 
-    EXTI_GO(EXTI7, EXTI_TRIGGER_FALLING);
+    EXTI_GO(EXTI7, EXTI_TRIGGER_BOTH);
 
     nvic_enable_irq(NVIC_EXTI0_IRQ);
     nvic_enable_irq(NVIC_EXTI1_IRQ);
@@ -240,7 +245,7 @@ void sys_tick_handler(void)
     ticks++;
     if(ticks>500)
     {
-        gpio_toggle(GPIOC, GPIO13);
+        //gpio_toggle(GPIOC, GPIO13);
         ticks=0;
     }
 

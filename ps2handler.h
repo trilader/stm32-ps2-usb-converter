@@ -8,6 +8,15 @@
 class ps2handler
 {
 private:
+
+    enum class protocol_state
+    {
+        receive,
+        send_command,
+        send_led_state,
+        wait_for_response,
+    };
+
     static constexpr uint8_t recv_buffer_size=64;
     volatile uint8_t recv_buffer[recv_buffer_size];
     volatile uint8_t recv_buffer_head=0, recv_buffer_tail=0;
@@ -21,6 +30,15 @@ private:
     const uint8_t meta_pause_break=0x02;
     const uint8_t meta_break=0x04;
 
+    protocol_state state;
+    bool need_to_send=false;
+    uint8_t led_byte=0;
+    uint8_t current_send_bit=0;
+
+    void clock_update_send(bool clock_state, bool data_state);
+    void clock_update_receive(bool data_state);
+
+    void send_start_bit(protocol_state next_state);
 
 public:
     ps2handler();
@@ -39,6 +57,7 @@ public:
     std::array<uint8_t,5> usb_keys = {};
     std::array<uint8_t,1024> key_states = {};
     uint8_t usb_modifier_byte() const;
+    void update_leds(bool num, bool caps, bool scroll);
 
     int fail_count=0;
     bool need_update=false;

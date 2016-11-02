@@ -2,6 +2,16 @@
 #include "util.h"
 #include <stdio.h>
 
+int dbg_count=0;
+
+template<typename... Args>
+void debug_print(Args... args)
+{
+    /*dbg_count++;
+    printf("dbg: %03d ",dbg_count);
+    printf(args...);*/
+}
+
 void ps2handler::init_recv_buffer()
 {
     for(uint8_t i=0; i<recv_buffer_size; ++i)
@@ -110,22 +120,17 @@ uint8_t ps2handler::map_state_to_usb_scancode(uint16_t state_index) const
     return state_index_to_usb_scancode[state_index];
 }
 
-ps2handler::ps2handler()
+ps2handler::ps2handler(): state(ps2handler::protocol_state::receive)
 {
     init_recv_buffer();
 }
 
 void ps2handler::init()
 {
-    // Data pin
-    gpio_set_mode(data_pin_bank, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, data_pin_id);
-    // Enable pullup
-    gpio_set(data_pin_bank, data_pin_id);
-
-    // Clock pin
-    gpio_set_mode(clock_pin_bank, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, clock_pin_id);
-    // Enable pullup
+    gpio_set_mode(clock_pin_bank, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN, clock_pin_id);
     gpio_set(clock_pin_bank, clock_pin_id);
+    gpio_set_mode(data_pin_bank, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN, data_pin_id);
+    gpio_set(data_pin_bank, data_pin_id);
 
     //gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO10);
     //gpio_clear(GPIOB, GPIO10);
@@ -133,10 +138,99 @@ void ps2handler::init()
     //gpio_clear(GPIOB, GPIO11);
 }
 
+void ps2handler::clock_update_send(bool clock_state, bool data_state)
+{
+    uint8_t data_byte=(state==protocol_state::send_command)?0xED:led_byte;
+    if(current_send_bit>=1 && current_send_bit<9)
+    {
+        if(clock_state==false)
+        {
+            //gpio_toggle(GPIOB, GPIO10);
+            bool bit=data_byte&(1<<(current_send_bit-1));
+            if(bit)
+            {
+                gpio_set(data_pin_bank, data_pin_id);
+            }
+            else
+            {
+                gpio_clear(data_pin_bank, data_pin_id);
+            }
+            debug_print("sent bit %d\n",current_send_bit);
+            current_send_bit++;
+        }
+    }
+    else if(current_send_bit==9)
+    {
+        if(clock_state==false)
+        {
+            bool parity=!__builtin_parity(data_byte);
+            if(parity)
+            {
+                gpio_set(data_pin_bank, data_pin_id);
+            }
+            else
+                gpio_clear(data_pin_bank, data_pin_id);
+            {
+            }
+            debug_print("sent parity\n");
+            current_send_bit++;
+        }
+    }
+    else if(current_send_bit==10)
+    {
+        if(clock_state==false)
+        {
+            gpio_set(data_pin_bank, data_pin_id);
+            current_send_bit++;
+            debug_print("sent stop\n");
+        }
+    }
+    else if(current_send_bit==11)
+    {
+        if(clock_state==false)
+        {
+            if(data_state==false) // ACK bit ok
+            {
+                ; // Ignore ACK
+            }
+            else
+            {
+                printf("Error sending 0x%x to keyboard. NACK\n", data_byte);
+                state=protocol_state::receive;
+
+            }
+            current_send_bit=0;
+
+            if(state==protocol_state::send_led_state)
+            {
+                state=protocol_state::receive;
+            }
+            else
+            {
+                state=protocol_state::wait_for_response;
+            }
+        }
+    }
+}
+
+
 void ps2handler::clock_update(bool clock_state, bool data_state)
 {
-    UNUSED(clock_state);
+    if(state==protocol_state::send_command||state==protocol_state::send_led_state)
+    {
+        clock_update_send(clock_state, data_state);
+    }
+    else
+    {
+        if(clock_state==false)
+        {
+            clock_update_receive(data_state);
+        }
+    }
+}
 
+void ps2handler::clock_update_receive(bool data_state)
+{
     static uint8_t bit_index=0;
 
     static uint8_t start_bit=0xff;
@@ -192,13 +286,31 @@ void ps2handler::clock_update(bool clock_state, bool data_state)
         bool parity_ok=__builtin_parity((data_word<<1)|parity_bit);
         if(start_bit==0 && stop_bit==1 && parity_ok)
         {
-            uint8_t i=recv_buffer_head+1;
-            if(i>=recv_buffer_size)
-                i=0;
-            if(i!=recv_buffer_tail)
+            if(state==protocol_state::receive)
             {
-                recv_buffer[i]=data_word;
-                recv_buffer_head=i;
+                uint8_t i=recv_buffer_head+1;
+                if(i>=recv_buffer_size)
+                    i=0;
+                if(i!=recv_buffer_tail)
+                {
+                    recv_buffer[i]=data_word;
+                    recv_buffer_head=i;
+                }
+            }
+            else if(state==protocol_state::wait_for_response)
+            {
+                if(data_word==0xfa)
+                {
+                    send_start_bit(protocol_state::send_led_state);
+                }
+                else if(data_word==0xfe)
+                {
+                    send_start_bit(protocol_state::send_command);
+                }
+                else
+                {
+                    printf("Got unexpected command response: 0x%x\n", data_word);
+                }
             }
         }
         else
@@ -208,6 +320,19 @@ void ps2handler::clock_update(bool clock_state, bool data_state)
         bit_index=0;
         data_word=0;
     }
+}
+
+void ps2handler::send_start_bit(protocol_state next_state)
+{
+    current_send_bit=0;
+    state=next_state;
+    gpio_set(data_pin_bank, data_pin_id);
+    gpio_clear(clock_pin_bank, clock_pin_id);
+    delay(30/*us*/);
+    gpio_clear(data_pin_bank, data_pin_id);
+    delay(30/*us*/);
+    gpio_set(clock_pin_bank, clock_pin_id);
+    current_send_bit=1;
 }
 
 void ps2handler::decode_scancode()
@@ -271,7 +396,7 @@ void ps2handler::decode_scancode()
             }
             else
             {
-                //printf("%#04x,\n",state_index);
+                //debug_print("%#04x,\n",state_index);
                 if(usb_scancode!=0)
                 {
                     for(size_t index=0;index<usb_keys.size();++index)
@@ -303,5 +428,15 @@ uint8_t ps2handler::usb_modifier_byte() const
            + (key_states[0x0111]<<6)
            + (key_states[0x0127]<<7);
 }
+
+
+
+void ps2handler::update_leds(bool num, bool caps, bool scroll)
+{
+    printf("update_leds %d %d %d\n",num,caps,scroll);
+
+    led_byte=(scroll<<0)|(num<<1)|(caps<<2);
+
+    send_start_bit(protocol_state::send_command);
 }
 

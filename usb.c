@@ -319,6 +319,9 @@ static int hid_control_request_interface(usbd_device *dev, struct usb_setup_data
                 // LEDs
                 //gpio_toggle(GPIOC, GPIO13);
                 // CapsLock
+
+                update_leds(data&0b001, data&0b010, data&0b100);
+
                 if(data & 0b10)
                     gpio_clear(GPIOC, GPIO13);
                 else
