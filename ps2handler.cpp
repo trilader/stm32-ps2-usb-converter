@@ -294,13 +294,14 @@ void ps2handler::decode_scancode()
 uint8_t ps2handler::usb_modifier_byte() const
 {
     //LCtrl, LShift, LAlt, LGui, RCtrl, RShift, RAlt, RGui
-    return (key_states[0x00'14]<<0)
-           + (key_states[0x00'12]<<1)
-           + (key_states[0x00'11]<<2)
-           + (key_states[0x01'1f]<<3)
-           + (key_states[0x01'14]<<4)
-           + (key_states[0x00'59]<<5)
-           + (key_states[0x01'11]<<6)
-           + (key_states[0x01'27]<<7);
+    return (key_states[0x0014]<<0)
+           + (key_states[0x0012]<<1)
+           + (key_states[0x0011]<<2)
+           + (key_states[0x011f]<<3)
+           + (key_states[0x0114]<<4)
+           + (key_states[0x0059]<<5)
+           + (key_states[0x0111]<<6)
+           + (key_states[0x0127]<<7);
+}
 }
 
