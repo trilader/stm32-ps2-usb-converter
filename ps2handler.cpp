@@ -362,7 +362,7 @@ void ps2handler::decode_scancode()
             continue;
         }
 
-        uint16_t state_index=map_to_state_index(meta, scancode);
+        const uint16_t state_index=map_to_state_index(meta, scancode);
         if(prev_state_index==0x214 && state_index==0x77)
         {
             // This is needed to fix the behavior of the Pause/Break key
@@ -372,8 +372,8 @@ void ps2handler::decode_scancode()
             continue;
         }
         prev_state_index=state_index;
-        bool last_key_state=key_states[state_index];
-        bool is_break=meta&meta_break;
+        const bool last_key_state=key_states[state_index];
+        const bool is_break=meta&meta_break;
         if(last_key_state != !is_break)
         {
             need_update=true;
