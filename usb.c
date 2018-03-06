@@ -3,10 +3,12 @@
 #include "util.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <libopencm3/stm32/tools.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/usb/usbd.h>
 #include <libopencm3/usb/hid.h>
+#include <libopencm3/stm32/st_usbfs.h>
 
 
 /* Define this to include the DFU APP interface. */
@@ -439,9 +441,26 @@ static void hid_set_config(usbd_device *dev, uint16_t wValue)
 #endif
 }
 
+static void handle_suspend(void)
+{
+    printf("%s called\n", __FUNCTION__);
+    /*update_leds(false, false, false); // Turn off leds when entering low power mode
+    SET_REG(USB_CNTR_REG, (GET_REG(USB_CNTR_REG)|USB_CNTR_FSUSP)); // Enter suspend mode
+    SET_REG(USB_CNTR_REG, (GET_REG(USB_CNTR_REG)|USB_CNTR_LP_MODE)); // Enter USB low power mode
+    printf("Done with handling USB suspend.\n");*/
+}
+
+static void handle_resume(void)
+{
+    printf("%s called\n", __FUNCTION__);
+    /*CLR_REG_BIT(USB_CNTR_REG, USB_CNTR_FSUSP); // Exit suspend mode
+    printf("Done with USB handling resume.\n");*/
+}
 
 void setup_usb()
 {
     usbd_dev = usbd_init(&st_usbfs_v1_usb_driver, &dev_descr, &config, usb_strings, 3, usbd_control_buffer, sizeof(usbd_control_buffer));
     usbd_register_set_config_callback(usbd_dev, hid_set_config);
+    usbd_register_suspend_callback(usbd_dev, &handle_suspend);
+    usbd_register_resume_callback(usbd_dev, &handle_resume);
 }
