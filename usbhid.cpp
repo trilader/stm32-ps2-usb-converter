@@ -311,7 +311,7 @@ void sys_tick_handler(void)
         volatile uint8_t keycode_media_volume_up   = 0b00100000;
         volatile uint8_t keycode_media_volume_down = 0b01000000;
 
-        UNUSED(keycode_media_mute);
+        UNUSED(keycode_media_stop)
         UNUSED(keycode_media_volume_up);
         UNUSED(keycode_media_volume_down);
 
@@ -324,7 +324,7 @@ void sys_tick_handler(void)
         if(f3)
             buf2[0]|=keycode_media_playpause;
         if(f4)
-            buf2[0]|=keycode_media_stop;
+            buf2[0]|=keycode_media_mute;
 
         usbd_ep_write_packet(usbd_dev, 0x82, buf2, 1);
 
