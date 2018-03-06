@@ -159,7 +159,7 @@ void ps2handler::clock_update_send(bool clock_state, bool data_state)
             {
                 gpio_clear(data_pin_bank, data_pin_id);
             }
-            debug_print("sent bit %d\n",current_send_bit);
+            //debug_print("sent bit %d\n",current_send_bit);
             current_send_bit++;
         }
     }
@@ -176,7 +176,7 @@ void ps2handler::clock_update_send(bool clock_state, bool data_state)
                 gpio_clear(data_pin_bank, data_pin_id);
             {
             }
-            debug_print("sent parity\n");
+            //debug_print("sent parity\n");
             current_send_bit++;
         }
     }
@@ -186,7 +186,7 @@ void ps2handler::clock_update_send(bool clock_state, bool data_state)
         {
             gpio_set(data_pin_bank, data_pin_id);
             current_send_bit++;
-            debug_print("sent stop\n");
+            //debug_print("sent stop\n");
         }
     }
     else if(current_send_bit==11)
@@ -374,6 +374,9 @@ void ps2handler::decode_scancode()
         prev_state_index=state_index;
         const bool last_key_state=key_states[state_index];
         const bool is_break=meta&meta_break;
+
+        //debug_print("%#1x %#02x -> %#04x,\n", meta, scancode, state_index);
+
         if(last_key_state != !is_break)
         {
             need_update=true;
@@ -404,7 +407,6 @@ void ps2handler::decode_scancode()
             }
             else
             {
-                //debug_print("%#04x,\n",state_index);
                 if(usb_scancode!=0)
                 {
                     // This key sends something on the usb side. Try to find a free slot in the to send map.
@@ -444,7 +446,7 @@ uint8_t ps2handler::usb_modifier_byte() const
 
 void ps2handler::update_leds(bool num, bool caps, bool scroll)
 {
-    printf("update_leds %d %d %d\n",num,caps,scroll);
+    //printf("update_leds %d %d %d\n",num,caps,scroll);
 
     led_byte=(scroll<<0)|(num<<1)|(caps<<2);
 
