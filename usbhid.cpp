@@ -245,7 +245,7 @@ void sys_tick_handler(void)
     ticks++;
     if(ticks>500)
     {
-        //gpio_toggle(GPIOC, GPIO13);
+        gpio_toggle(GPIOC, GPIO13);
         ticks=0;
     }
 
