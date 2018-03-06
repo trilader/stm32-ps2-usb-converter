@@ -53,8 +53,8 @@ public:
     const uint8_t usb_key_state_is_sent = 0x01;
     const uint8_t usb_key_state_is_down = 0x02;
 
-    std::array<uint8_t,5> usb_keys_state = {};
-    std::array<uint8_t,5> usb_keys = {};
+    std::array<uint8_t,5> usb_keys_state = {}; // State of the keys to be sent to the host. States: Empty (0), Down but unsent, Sent
+    std::array<uint8_t,5> usb_keys = {}; // List of keys to be sent to the host. States: Empty (0), Scancode (not 0).
     std::array<uint8_t,1024> key_states = {};
     uint8_t usb_modifier_byte() const;
     void update_leds(bool num, bool caps, bool scroll);

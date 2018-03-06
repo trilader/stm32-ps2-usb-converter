@@ -277,16 +277,20 @@ void sys_tick_handler(void)
 
         if(sent_bytes)
         {
+            // After we've successfully sent the key state to the host we can clean up the key tracking table.
             ps2keyboard.need_update=false;
             for(size_t index=0; index<ps2keyboard.usb_keys.size();++index)
             {
+                // Skip over unused slots
                 if(ps2keyboard.usb_keys[index]==0)
                     continue;
 
+                // If the key was presed before we sent the last package to the host, mark it as sent.
                 if(ps2keyboard.usb_keys_state[index]&ps2keyboard.usb_key_state_is_down)
                 {
                     ps2keyboard.usb_keys_state[index]|=ps2keyboard.usb_key_state_is_sent;
                 }
+                // If we've sent it before (state already was set to sent) we can clean up this slot (but we need to check again for changes the next time around)
                 else
                 {
                     ps2keyboard.usb_keys[index]=0;

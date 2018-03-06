@@ -12,6 +12,7 @@ void debug_print(Args... args)
     printf(args...);*/
 }
 
+// Initialize receive ringbuffer
 void ps2handler::init_recv_buffer()
 {
     for(uint8_t i=0; i<recv_buffer_size; ++i)
@@ -22,6 +23,7 @@ void ps2handler::init_recv_buffer()
     recv_buffer_tail=0;
 }
 
+// Fetches the next scancode from the receive ring buffer
 uint8_t ps2handler::get_scan_code()
 {
     uint8_t result,i;
@@ -110,6 +112,8 @@ static const uint8_t state_index_to_usb_scancode[]=
     0x00, 0x00, 0x00, 0x00, 0x48, 0x00, 0x00, 0x00,  // 0x210
 };
 
+// Convert key event meta data and scancode into usb scancode translation LUT
+// TODO: 2 bytes meta + 8 bytes scancode = 10 bits. Max index therefore is 0x3ff but the scancode translation table only goes up to 0x218. Why?
 uint16_t ps2handler::map_to_state_index(uint8_t meta, uint8_t scancode) const
 {
     return ((meta&0b11)<<8) + scancode;
@@ -379,19 +383,23 @@ void ps2handler::decode_scancode()
             {
                 if(usb_scancode!=0)
                 {
+                    // This key sends something on the usb side. Try to find the slot we've reserved for it when it was pressed.
                     for(size_t index=0;index<usb_keys.size();++index)
                     {
                         if(usb_keys[index]==usb_scancode)
                         {
+                            // If the key was sent to the host we can free the slot is is occupying in the tracking table.
                             if(usb_keys_state[index]&usb_key_state_is_sent)
                             {
                                 usb_keys[index]=0;
                             }
+                            // Also reset the down/sent tracking table slot.
                             usb_keys_state[index]=0;
                             break;
                         }
                     }
                 }
+                // Remove key from internal state tracking table
                 key_states[state_index]=false;
             }
             else
@@ -399,16 +407,19 @@ void ps2handler::decode_scancode()
                 //debug_print("%#04x,\n",state_index);
                 if(usb_scancode!=0)
                 {
+                    // This key sends something on the usb side. Try to find a free slot in the to send map.
                     for(size_t index=0;index<usb_keys.size();++index)
                     {
                         if(usb_keys[index]==0)
                         {
+                            // We've found an empty slot. Put it in there and mark it as down in the state tracking table.
                             usb_keys_state[index]=usb_key_state_is_down;
                             usb_keys[index]=usb_scancode;
                             break;
                         }
                     }
                 }
+                // Mark key in internal state tracking table
                 key_states[state_index]=true;
             }
         }
